@@ -1,0 +1,17 @@
+# Credentials - never commit
+.env
+.env.*
+!.env.example
+
+# Generated reports and JSON contain tenant configuration data
+out/
+report.html
+data.json
+*.report.html
+
+# Python
+__pycache__/
+*.pyc
+
+# Tooling
+.playwright-mcp/
