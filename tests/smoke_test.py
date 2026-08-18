@@ -6,6 +6,8 @@ Run with: python tests/smoke_test.py
 import sys
 from pathlib import Path
 
+import base64
+
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
@@ -79,6 +81,22 @@ DEFS = [
 ]
 OVERRIDES = [{"_settingdefinitionid_value": "def-1", "value": "true"}]
 
+
+def _b64(text):
+    return base64.b64encode(text.encode("utf-8")).decode("ascii")
+
+
+# One row per content shape the decoder has to survive.
+FCS = [
+    {"featurecontrolsettingid": "f1", "uniquename": "FCB.EnableFoo", "name": "Enable Foo",
+     "content": _b64('{"enabled":true,"scope":"org"}')},
+    {"featurecontrolsettingid": "f2", "uniquename": "FCB.MultiLine", "name": "Multi line",
+     "content": _b64("line one\r\nline two")},
+    {"featurecontrolsettingid": "f3", "uniquename": "FCB.NotBase64", "name": "Not base64",
+     "content": "this is not base64!!"},
+    {"featurecontrolsettingid": "f4", "uniquename": "FCB.Empty", "name": "Empty", "content": ""},
+]
+
 PPAPI_SETTINGS = {"objectResult": [{"id": "x", "tenantId": "t", "powerApps_AllowCodeApps": True, "copilotStudio_ConnectedAgents": "Disabled"}]}
 
 
@@ -103,6 +121,8 @@ def fake_get_paged(url, token, value_key="value", next_key="@odata.nextLink"):
         return DEFS
     if "organizationsettings" in url:
         return OVERRIDES
+    if "featurecontrolsettings" in url:
+        return FCS
     raise AssertionError(f"unexpected paged GET {url}")
 
 
@@ -145,6 +165,14 @@ def main():
     }
     assert rows["setting:powerapps_asyncsave"]["values"]["Default-aaa"]["source"] == "default"
     assert rows["setting:pfi_enableipbasedcookiebinding"]["description"] == "Binds session cookies to the client IP."
+
+    # featurecontrolsetting.content is base64; JSON, plain text and undecodable all have to survive.
+    assert rows["fcs:FCB.EnableFoo"]["name"] == "Enable Foo"
+    assert rows["fcs:FCB.EnableFoo"]["values"]["Default-aaa"]["raw"] == {"enabled": True, "scope": "org"}
+    assert rows["fcs:FCB.EnableFoo"]["values"]["Default-aaa"]["display"] == '{"enabled":true,"scope":"org"}'
+    assert rows["fcs:FCB.MultiLine"]["values"]["Default-aaa"]["raw"] == "line one\nline two"
+    assert rows["fcs:FCB.NotBase64"]["values"]["Default-aaa"]["raw"] == "this is not base64!!"
+    assert "fcs:FCB.Empty" not in rows, "empty content must not produce a row"
     # The environment we could not read must contribute no Dataverse values at all.
     assert "denied-bbb" not in rows["org:isauditenabled"]["values"], rows["org:isauditenabled"]
 

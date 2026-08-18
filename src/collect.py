@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import base64
 import json
 import threading
 import urllib.parse
@@ -22,9 +23,10 @@ CAT_ENV = "Environment"
 CAT_MANAGED = "Managed Environment"
 CAT_PPAPI = "Environment management settings"
 CAT_FEATURES = "Settings & features (Dataverse)"
+CAT_FCS = "Feature control settings (Dataverse)"
 CAT_ORG = "Organization table (Dataverse)"
 CAT_ORGDB = "OrgDBOrgSettings (Dataverse)"
-CATEGORY_ORDER = [CAT_ENV, CAT_MANAGED, CAT_PPAPI, CAT_FEATURES, CAT_ORG, CAT_ORGDB]
+CATEGORY_ORDER = [CAT_ENV, CAT_MANAGED, CAT_PPAPI, CAT_FEATURES, CAT_FCS, CAT_ORG, CAT_ORGDB]
 
 # Identifiers and churn columns - never interesting in a settings comparison.
 ORG_SKIP = {
@@ -243,6 +245,7 @@ def _rows_dataverse(base, token, meta, notes):
 
     rows += _rows_orgdb(org.get("orgdborgsettings"), notes)
     rows += _rows_settings_framework(base, token, notes)
+    rows += _rows_feature_control(base, token, notes)
     return rows
 
 
@@ -306,6 +309,40 @@ def _rows_settings_framework(base, token, notes):
         if row:
             out.append(row)
     return out
+
+
+def _rows_feature_control(base, token, notes):
+    """featurecontrolsetting holds the FCB feature flags, one row per feature."""
+    try:
+        items = get_paged(f"{base}{DV}/featurecontrolsettings", token)
+    except ApiError as e:
+        notes.append(f"feature control settings: {explain(e)}")
+        return []
+
+    out = []
+    for item in items:
+        unique = _first(item, "uniquename")
+        if not unique:
+            continue
+        row = _row(CAT_FCS, f"fcs:{unique}", _first(item, "name") or unique, _decode_content(item.get("content")))
+        if row:
+            out.append(row)
+    return out
+
+
+def _decode_content(raw):
+    """featurecontrolsetting.content is base64 UTF-8, usually holding JSON."""
+    if not raw:
+        return None
+    try:
+        text = base64.b64decode(raw, validate=True).decode("utf-8")
+    except (ValueError, UnicodeDecodeError):
+        return str(raw)  # not base64 after all - surface it rather than dropping the row
+    text = text.replace("\r\n", "\n").strip()
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError:
+        return text
 
 
 def _row(category, key, name, value, description=None, source="value"):

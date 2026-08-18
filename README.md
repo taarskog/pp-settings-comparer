@@ -100,6 +100,7 @@ Writes `out/report.html` (override with `--out`) and prints `<n> settings x <m> 
 | Managed Environment | `properties.governanceConfiguration` from the same call | same |
 | Environment management settings | `api.powerplatform.com/environmentmanagement/.../settings` | management app or Power Platform RBAC role |
 | Settings & features (Dataverse) | `settingdefinitions` + `organizationsettings` | application user |
+| Feature control settings (Dataverse) | `featurecontrolsettings` — the `content` column is base64, decoded to JSON | application user |
 | Organization table (Dataverse) | `organizations` (labels/descriptions from `EntityDefinitions`) | application user |
 | OrgDBOrgSettings (Dataverse) | the `orgdborgsettings` XML column, parsed per key | application user |
 

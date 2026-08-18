@@ -1,14 +1,17 @@
 """Realistic sample data for the environment settings report.
 
 Mirrors the contract produced by :func:`collect.collect` and consumed by
-:func:`report.render_html` - same six categories, same key prefixes, same
+:func:`report.render_html` - same categories, same key prefixes, same
 ordering. Every name, GUID and URL is fictional.
 """
 
 from __future__ import annotations
 
+import json
+
 from collect import (
     CAT_ENV,
+    CAT_FCS,
     CAT_FEATURES,
     CAT_MANAGED,
     CAT_ORG,
@@ -108,7 +111,12 @@ ENV_IDS = [e["id"] for e in ENVIRONMENTS]
 
 def _val(raw, source):
     """Same rendering rule as :func:`collect._display`."""
-    display = ("Yes" if raw else "No") if isinstance(raw, bool) else str(raw)
+    if isinstance(raw, bool):
+        display = "Yes" if raw else "No"
+    elif isinstance(raw, (dict, list)):
+        display = json.dumps(raw, sort_keys=True, separators=(",", ":"))
+    else:
+        display = str(raw)
     return {"display": display, "raw": raw, "source": source}
 
 
@@ -869,6 +877,87 @@ _ROWS = [
         "TotalRecordCountLimit",
         None,
         ["50000", "50000", "50000", None, "50000", "100000", "50000", None],
+    ),
+    # featurecontrolsetting rows - content arrives base64-encoded and is decoded to JSON.
+    _setting(
+        "fcs:FCB.AllowSavedQueryVisualizationInRibbon",
+        CAT_FCS,
+        "Allow saved query visualization in ribbon",
+        None,
+        [
+            {"enabled": True},
+            {"enabled": True},
+            {"enabled": True},
+            None,
+            {"enabled": True},
+            {"enabled": False},
+            {"enabled": True},
+            None,
+        ],
+    ),
+    _setting(
+        "fcs:FCB.AsyncGridDataLoad",
+        CAT_FCS,
+        "Async grid data load",
+        None,
+        [
+            {"enabled": True, "rolloutStage": "ga"},
+            {"enabled": True, "rolloutStage": "ga"},
+            {"enabled": True, "rolloutStage": "preview"},
+            None,
+            {"enabled": True, "rolloutStage": "preview"},
+            {"enabled": True, "rolloutStage": "ga"},
+            {"enabled": True, "rolloutStage": "ga"},
+            None,
+        ],
+    ),
+    _setting(
+        "fcs:FCB.EnableEditableGridOnPhone",
+        CAT_FCS,
+        "Enable editable grid on phone",
+        None,
+        [
+            {"enabled": False},
+            {"enabled": False},
+            {"enabled": True},
+            None,
+            {"enabled": True},
+            {"enabled": False},
+            {"enabled": False},
+            None,
+        ],
+    ),
+    _setting(
+        "fcs:FCB.MaintenanceNotice",
+        CAT_FCS,
+        "Maintenance notice",
+        None,
+        [
+            "Scheduled maintenance window: Sundays 02:00-04:00 UTC\nContact: platform-ops@contoso.com",
+            "Scheduled maintenance window: Sundays 02:00-04:00 UTC\nContact: platform-ops@contoso.com",
+            None,
+            None,
+            None,
+            "Scheduled maintenance window: Saturdays 22:00-02:00 UTC\nContact: ops@fabrikam.com",
+            None,
+            None,
+        ],
+    ),
+    _setting(
+        "fcs:FCB.OfflineProfileSync",
+        CAT_FCS,
+        "Offline profile sync",
+        None,
+        [
+            {"enabled": True, "maxRecords": 5000},
+            {"enabled": True, "maxRecords": 5000},
+            {"enabled": True, "maxRecords": 1000},
+            None,
+            {"enabled": True, "maxRecords": 1000},
+            {"enabled": True, "maxRecords": 5000},
+            {"enabled": True, "maxRecords": 5000},
+            None,
+        ],
     ),
 ]
 
