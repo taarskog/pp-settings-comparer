@@ -8,6 +8,8 @@ environment's settings and features, and renders a single self-contained HTML ma
 Useful for answering "why does this behave differently in UAT than in production?" without
 clicking through the admin centre 30 times.
 
+![Sample Screenshot](screenshot.png)
+
 ## Try it without a tenant
 
 ```powershell
